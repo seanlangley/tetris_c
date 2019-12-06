@@ -31,7 +31,7 @@ int main(){
             }
         }
         usleep(100);
-        clear_scr();
+//        clear_scr();
     }
     endwin();
     return 0;
@@ -41,7 +41,8 @@ void init_curses(){
     initscr();
     noecho();
     cbreak();
-    timeout(100);
+    curs_set(0);
+//    timeout(100);
 }
 
 void draw_well(){
