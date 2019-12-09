@@ -3,13 +3,12 @@
 #include <unistd.h>
 #include <time.h>
 #include <string.h>
-#include <pthread.h>
 #include "tetris.h"
 
-piece_t *pieces[MAX_PIECES];
 piece_t *curr_piece = NULL;
-char error[32];
-int num_pieces = 0;
+char error[32], buffer[32];
+unsigned int score = 0, level = 1;
+bool game_over = false;
 
 int main(){
     int ch;
@@ -17,28 +16,30 @@ int main(){
     srand(time(NULL));
     init_curses();
     draw_well();
-    pieces[0] = add_piece();
-    curr_piece = pieces[0];
-
+    curr_piece = add_piece();
     while(1){
+        sprintf(buffer, "Score: %d", score);
+        mvprintw(2, 18, buffer);
+        sprintf(buffer, "Level: %d", level);
+        mvprintw(3, 18, buffer);
         ch = getch();
         if (ch == 'q'){
             break;
         }
-        else if (ch == ' ' && curr_piece){
-            curr_piece->do_flip ? (curr_piece->do_flip = false) :
-                (curr_piece->do_flip = true);
-        }
-        if(curr_piece){
+        if (curr_piece){
+            switch(ch){
+                case 'a': move_horizontally(LEFT);    break;
+                case 'd': move_horizontally(RIGHT);   break;
+                case ' ': curr_piece->do_flip = true; break;
+                default: break;
+            }
             update_curr_piece();
         }
         else{
-            if (num_pieces++ > MAX_PIECES-1){
-                break;
-            }
-            num_pieces += 1;
             curr_piece = add_piece();
-            pieces[num_pieces] = curr_piece;
+        }
+        if (game_over){
+            break;
         }
         usleep(1000*100);
     }
@@ -51,7 +52,7 @@ void init_curses(){
     noecho();
     cbreak();
     curs_set(0);
-    nodelay(stdscr, TRUE);
+    timeout(50);
 }
 
 void draw_well(){
@@ -66,67 +67,256 @@ void draw_well(){
 }
 
 piece_t *add_piece(){
-    int i;
-    piece_t *new_piece = malloc(sizeof(piece_t));
+    piece_t *new_piece;
+    
+    new_piece = malloc(sizeof(piece_t));
     if (!new_piece){
         sprintf(error, "malloc(), line %d file %s", __LINE__, __FILE__);
         perror(error);
         exit(1);
     }
 
+    new_piece->type = (enum piece_type)(rand() % 4);
+    switch (new_piece->type){
+        case I:
+            if (mvinch(4, WIDTH/2) == '#'){
+                game_over = true;
+            }
+            break;
+        case SQUARE:
+            if (mvinch(3, WIDTH/2) == '#' || mvinch(3, WIDTH/2+1) == '#'){
+                game_over = true;
+            }
+            break;
+        case J:
+            if (mvinch(3, WIDTH/2-1) == '#' || mvinch(3, WIDTH/2) == '#'){
+                game_over = true;
+            }
+            break;
+        case L:
+            if (mvinch(3, WIDTH/2) == '#' || mvinch(3, WIDTH/2+1) == '#'){
+                game_over = true;
+            }
+            break;
+    }
+    if (game_over){
+        free(new_piece);
+        return NULL;
+    }
     new_piece->r = 1;
-    new_piece->c = 1;
+    new_piece->c = WIDTH/2;
     new_piece->do_flip = false;
     new_piece->is_horizontal = false;
-    char str[5] = {"#"};
-    for(i = 0; i < 4; i++){
-        strcpy(new_piece->shape[i], str);
-    }
     return new_piece;
 }
 
 void update_curr_piece(){
-    int idx;
     piece_t *p = curr_piece;
-    if (!p->is_horizontal && p->r > HEIGHT-5) {
-        curr_piece = NULL;
-        return;
-    }
-    else if (p->is_horizontal && p->r > HEIGHT-2) {
-        curr_piece = NULL;
-        return;
-    }
-    if (!p->is_horizontal) {
-        mvprintw(p->r, p->c, " ");
-        p->r++;
-        for(idx = 0; idx < 4; idx++){
-            mvprintw(p->r+idx, p->c, "#");
-        }
-    }
-    else{
-        mvprintw(p->r, p->c, "    ");
-        p->r++;
-        mvprintw(p->r, p->c, "####");
-    }
-    if (p->do_flip){
-        if(!p->is_horizontal){ //Vertical and do flip
-            for(idx = 0; idx < 4; idx++){
-                mvprintw(p->r+idx, p->c, " ");
+    bool make_new_piece = false;
+
+    switch (p->type){
+        case I:
+            if ((!p->is_horizontal && mvinch(p->r+4, p->c) != ' ') ||
+                    (p->is_horizontal && mvinch(p->r+1, p->c) != ' '))  {
+                make_new_piece = true;
             }
-            mvprintw(p->r, p->c, "####");
+            break;
+        case SQUARE:
+            if (mvinch(p->r+2, p->c) == '#'){
+                make_new_piece = true;
+            }
+            break;
+        case J:
+            if (p->is_horizontal){
+                if (mvinch(p->r+1, p->c) == '#' || mvinch(p->r+1, p->c+1) == '#' ||
+                    mvinch(p->r+2, p->c+2) == '#'){
+                    make_new_piece = true;
+                }
+            }
+            else if (mvinch(p->r-1, p->c+3) == '#' ||
+                     mvinch(p->r, p->c+3) == '#'){
+                make_new_piece = true;
+            }
+        case L://TODO
+            if (p->is_horizontal){
+            }
+            else{
+
+            }
+            break;
+        default:
+            break;
+    }
+    if (make_new_piece){
+        free(curr_piece);
+        curr_piece = NULL;
+        clear_lines();
+        return;
+    }
+    clear_piece(p);
+    p->r++;
+    if (p->do_flip){
+        if (!p->is_horizontal && p->c < WIDTH-4){
             p->is_horizontal = true;
         }
-        else{ //Horizontal and do flip
-            //piece's height must be > HEIGHT-5 to do a vertical flip
-            if (p->r < HEIGHT-5){
-                mvprintw(p->r, p->c, "    ");
-                for(idx = 0; idx < 4; idx++){
-                    mvprintw(p->r+idx, p->c, "#");
-                }
-                p->is_horizontal = false;
-            }
+        else if(p->is_horizontal){
+            p->is_horizontal = false;
         }
         p->do_flip = false;
     }
+    draw_piece(p);
 }
 
+void move_horizontally(direction_t direction){
+    piece_t *p = curr_piece;
+    int inc = 0;
+
+    switch (p->type){
+        case I:
+            if (direction == LEFT && p->c > 1) {
+                inc = -1;
+            }
+
+            else if (direction == RIGHT) {
+                if ((p->is_horizontal && p->c < WIDTH-4) ||
+                        (!p->is_horizontal && p->c < WIDTH-1)){
+                    inc = 1;
+                }
+            }
+            break;
+        case SQUARE:
+            if (direction == LEFT && mvinch(p->r, p->c-1) != '#' ){
+                inc = -1;
+            }
+            else if (direction == RIGHT && mvinch(p->r, p->c+2) !=  '#'){
+                inc = 1;
+            }
+        case J:
+        case L:
+            break;
+    }
+    if(inc){
+        clear_piece(p);
+        p->c += inc;
+        draw_piece(p);
+    }
+}
+
+void clear_piece(piece_t *p){
+    int idx;
+
+    switch (p->type){
+        case I:
+            if (p->is_horizontal){
+                mvprintw(p->r, p->c, "    ");
+            }
+            else{
+                for (idx = 0; idx < 4; idx++){
+                    mvprintw(p->r+idx, p->c, " ");
+                }
+            }
+            break;
+        case SQUARE:
+            for (idx = 0; idx < 2; idx++){
+                mvprintw(p->r+idx, p->c, "  ");
+            }
+            break;
+        case J:
+            if (p->is_horizontal){
+                mvprintw(p->r, p->c, "   ");
+                mvprintw(p->r+1, p->c+2, " ");
+            }
+            else{
+                for (idx = 0; idx < 2; idx++){
+                    mvprintw(p->r+idx, p->c, " ");
+                }
+                mvprintw(p->r+2, p->c-1, "  ");
+            }
+            break;
+        case L:
+            if (p->is_horizontal){
+                mvprintw(p->r, p->c, "   ");
+                mvprintw(p->r-1, p->c+2, " ");
+            }
+            else{
+                for (idx = 0; idx < 2; idx++){
+                    mvprintw(p->r+idx, p->c, " ");
+                }
+                mvprintw(p->r+2, p->c, "  ");
+            }
+            break;
+        default:
+            break;
+    }
+}
+
+void draw_piece(piece_t *p){
+    int idx;
+
+    switch (p->type){
+        case I:
+            if (p->is_horizontal){
+                mvprintw(p->r, p->c, "####");
+            }
+            else{
+                for (idx = 0; idx < 4; idx++){
+                    mvprintw(p->r+idx, p->c, "#");
+                }
+            }
+            break;
+        case SQUARE:
+            for (idx = 0; idx < 2; idx++){
+                mvprintw(p->r+idx, p->c, "##");
+            }
+            break;
+        case J:
+            if (p->is_horizontal){
+                mvprintw(p->r, p->c, "###");
+                mvprintw(p->r+1, p->c+2, "#");
+            }
+            else {
+                for (idx = 0; idx < 2; idx++){
+                    mvprintw(p->r+idx, p->c, "#");
+                }
+                mvprintw(p->r+2, p->c-1, "###");
+            }
+            break;
+        case L:
+            if (p->is_horizontal){
+                mvprintw(p->r, p->c, "###");
+                mvprintw(p->r-1, p->c+2, "#");
+            }
+            else{
+                for (idx = 0; idx < 2; idx++){
+                    mvprintw(p->r+idx, p->c, "#");
+                }
+                mvprintw(p->r+2, p->c, "##");
+            }
+            break;
+        default:
+            break;
+
+    }
+}
+
+void clear_lines(){
+    int r, c;
+    bool clear_line = true;
+    char blank_line[WIDTH];
+
+    memset(blank_line, ' ', WIDTH-1);
+    for (r = HEIGHT-1; r > 0; r--){
+        for (c = 1; c < WIDTH; c++){
+            if (mvinch(r, c) != '#') {
+                clear_line = false;
+            }
+        }
+        if (clear_line){
+            score += 1000;
+            mvprintw(r, 1, blank_line);
+        }
+        else{
+            clear_line = true;
+        }
+    }
+}
