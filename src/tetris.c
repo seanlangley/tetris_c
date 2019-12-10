@@ -6,17 +6,23 @@
 #include "tetris.h"
 
 piece_t *curr_piece = NULL;
+piece_t *next_pieces[3];
 char error[32], buffer[32];
 unsigned int score = 0, level = 1;
 bool game_over = false;
 
 int main(){
-    int ch;
+    int ch, idx;
 
     srand(time(NULL));
     init_curses();
     draw_well();
     curr_piece = add_piece();
+    for (idx = 0; idx < 3; idx++){
+        next_pieces[idx] = add_piece();
+     }
+    mvprintw(4, 18, "Next Pieces");
+    draw_next_pieces();
     while(1){
         sprintf(buffer, "Score: %d", score);
         mvprintw(2, 18, buffer);
@@ -36,7 +42,12 @@ int main(){
             update_curr_piece();
         }
         else{
-            curr_piece = add_piece();
+            curr_piece = next_pieces[0];
+            curr_piece->r = 1;
+            curr_piece->c = WIDTH/2;
+            next_pieces[0] = next_pieces[1];
+            next_pieces[1] = next_pieces[2];
+            next_pieces[2] = add_piece();
         }
         if (game_over){
             break;
@@ -45,6 +56,16 @@ int main(){
     }
     endwin();
     return 0;
+}
+
+void draw_next_pieces(){
+    int idx;
+    
+    for(idx = 0; idx < 3; idx++){
+        next_pieces[idx]->r = 4+(idx)*4;
+        next_pieces[idx]->c = 18;
+        draw_piece(next_pieces[idx]);
+    }
 }
 
 void init_curses(){
@@ -68,7 +89,7 @@ void draw_well(){
 
 piece_t *add_piece(){
     piece_t *new_piece;
-    
+
     new_piece = malloc(sizeof(piece_t));
     if (!new_piece){
         sprintf(error, "malloc(), line %d file %s", __LINE__, __FILE__);

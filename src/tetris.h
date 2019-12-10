@@ -32,6 +32,6 @@ void move_horizontally(direction_t);
 void clear_piece(piece_t*);
 void draw_piece(piece_t*);
 void clear_lines(void);
-
+void draw_next_pieces(void);
 
 #endif //TETRIS_H
