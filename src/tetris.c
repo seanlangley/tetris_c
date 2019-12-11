@@ -18,10 +18,10 @@ int main(){
     init_curses();
     draw_well();
     curr_piece = add_piece();
+    mvprintw(4, 18, "Next Pieces");
     for (idx = 0; idx < 3; idx++){
         next_pieces[idx] = add_piece();
      }
-    mvprintw(4, 18, "Next Pieces");
     draw_next_pieces();
     while(1){
         sprintf(buffer, "Score: %d", score);
@@ -42,12 +42,16 @@ int main(){
             update_curr_piece();
         }
         else{
+            for (idx = 0; idx < 3; idx++){
+                clear_piece(next_pieces[idx]);
+            }
             curr_piece = next_pieces[0];
             curr_piece->r = 1;
             curr_piece->c = WIDTH/2;
             next_pieces[0] = next_pieces[1];
             next_pieces[1] = next_pieces[2];
             next_pieces[2] = add_piece();
+            draw_next_pieces();
         }
         if (game_over){
             break;
@@ -62,8 +66,8 @@ void draw_next_pieces(){
     int idx;
     
     for(idx = 0; idx < 3; idx++){
-        next_pieces[idx]->r = 4+(idx)*4;
-        next_pieces[idx]->c = 18;
+        next_pieces[idx]->r = 7;
+        next_pieces[idx]->c = 18+idx*6;
         draw_piece(next_pieces[idx]);
     }
 }
@@ -134,6 +138,7 @@ piece_t *add_piece(){
 void update_curr_piece(){
     piece_t *p = curr_piece;
     bool make_new_piece = false;
+    int idx;
 
     switch (p->type){
         case I:
@@ -143,8 +148,10 @@ void update_curr_piece(){
             }
             break;
         case SQUARE:
-            if (mvinch(p->r+2, p->c) == '#'){
-                make_new_piece = true;
+            for (idx = 0; idx < 2; idx++){
+                if (mvinch(p->r+2, p->c+idx) == '#'){
+                    make_new_piece = true;
+                }
             }
             break;
         case J:
@@ -154,15 +161,23 @@ void update_curr_piece(){
                     make_new_piece = true;
                 }
             }
-            else if (mvinch(p->r-1, p->c+3) == '#' ||
-                     mvinch(p->r, p->c+3) == '#'){
+            else if (mvinch(p->r+3, p->c-1) == '#' ||
+                     mvinch(p->r+3, p->c) == '#'){
                 make_new_piece = true;
             }
-        case L://TODO
+        case L:
             if (p->is_horizontal){
+                for (idx = 0; idx < 3; idx++){
+                    if (mvinch(p->r+1, p->c+idx) == '#'){
+                        make_new_piece = true;
+                    }
+                }
             }
             else{
-
+                if (mvinch(p->r+3, p->c) == '#' ||
+                    mvinch(p->r+3, p->c+1) == '#'){
+                    make_new_piece = true;
+                }
             }
             break;
         default:
@@ -190,18 +205,31 @@ void update_curr_piece(){
 
 void move_horizontally(direction_t direction){
     piece_t *p = curr_piece;
-    int inc = 0;
+    int inc = 0, idx;
 
     switch (p->type){
         case I:
-            if (direction == LEFT && p->c > 1) {
+            if (direction == LEFT){
                 inc = -1;
             }
-
             else if (direction == RIGHT) {
-                if ((p->is_horizontal && p->c < WIDTH-4) ||
-                        (!p->is_horizontal && p->c < WIDTH-1)){
-                    inc = 1;
+                inc = 1;
+            }
+            if (p->is_horizontal && direction == LEFT){
+                if (mvinch(p->r, p->c-1) == '#'){
+                    inc = 0;
+                }
+            }
+            else if (p->is_horizontal && direction == RIGHT){
+                if (mvinch(p->r, p->c+4) == '#'){
+                    inc = 0;
+                }
+            }
+            else{ //Vertical
+                for (idx = 0; idx < 4; idx++){
+                    if (mvinch(p->r+idx, p->c+inc) == '#'){
+                        inc = 0;
+                    }
                 }
             }
             break;
@@ -213,6 +241,10 @@ void move_horizontally(direction_t direction){
                 inc = 1;
             }
         case J:
+            if (direction == LEFT){
+            }
+            else{
+            }
         case L:
             break;
     }
