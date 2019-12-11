@@ -42,17 +42,9 @@ int main(){
             update_curr_piece();
         }
         else{
-            for (idx = 0; idx < 3; idx++){
-                clear_piece(next_pieces[idx]);
-            }
-            curr_piece = next_pieces[0];
-            curr_piece->r = 1;
-            curr_piece->c = WIDTH/2;
-            next_pieces[0] = next_pieces[1];
-            next_pieces[1] = next_pieces[2];
-            next_pieces[2] = add_piece();
-            draw_next_pieces();
+            curr_piece = add_piece();
         }
+        
         if (game_over){
             break;
         }
@@ -102,23 +94,40 @@ piece_t *add_piece(){
     }
 
     new_piece->type = (enum piece_type)(rand() % 4);
+    //new_piece->type = I;
     switch (new_piece->type){
         case I:
+            strncpy(new_piece->shape[0], " #  ", 5);
+            strncpy(new_piece->shape[1], " #  ", 5);
+            strncpy(new_piece->shape[2], " #  ", 5);
+            strncpy(new_piece->shape[3], " #  ", 5);
             if (mvinch(4, WIDTH/2) == '#'){
                 game_over = true;
             }
             break;
         case SQUARE:
+            strncpy(new_piece->shape[0], "    ", 5);
+            strncpy(new_piece->shape[1], " ## ", 5);
+            strncpy(new_piece->shape[2], " ## ", 5);
+            strncpy(new_piece->shape[3], "    ", 5);
             if (mvinch(3, WIDTH/2) == '#' || mvinch(3, WIDTH/2+1) == '#'){
                 game_over = true;
             }
             break;
         case J:
+            strncpy(new_piece->shape[0], "  # ", 5);
+            strncpy(new_piece->shape[1], "  # ", 5);
+            strncpy(new_piece->shape[2], " ## ", 5);
+            strncpy(new_piece->shape[3], "    ", 5);
             if (mvinch(3, WIDTH/2-1) == '#' || mvinch(3, WIDTH/2) == '#'){
                 game_over = true;
             }
             break;
         case L:
+            strncpy(new_piece->shape[0], " #  ", 5);
+            strncpy(new_piece->shape[1], " #  ", 5);
+            strncpy(new_piece->shape[2], " ## ", 5);
+            strncpy(new_piece->shape[3], "    ", 5);
             if (mvinch(3, WIDTH/2) == '#' || mvinch(3, WIDTH/2+1) == '#'){
                 game_over = true;
             }
@@ -138,217 +147,85 @@ piece_t *add_piece(){
 void update_curr_piece(){
     piece_t *p = curr_piece;
     bool make_new_piece = false;
-    int idx;
+    int r, c;
 
-    switch (p->type){
-        case I:
-            if ((!p->is_horizontal && mvinch(p->r+4, p->c) != ' ') ||
-                    (p->is_horizontal && mvinch(p->r+1, p->c) != ' '))  {
+    clear_piece(p);
+    for (r = 0; r < 4; r++){
+        for (c = 0; c < 4; c++){
+            if (p->shape[r][c] == '#' && mvinch(p->r+r+1, p->c+c) == '#'){
                 make_new_piece = true;
             }
-            break;
-        case SQUARE:
-            for (idx = 0; idx < 2; idx++){
-                if (mvinch(p->r+2, p->c+idx) == '#'){
-                    make_new_piece = true;
-                }
-            }
-            break;
-        case J:
-            if (p->is_horizontal){
-                if (mvinch(p->r+1, p->c) == '#' || mvinch(p->r+1, p->c+1) == '#' ||
-                    mvinch(p->r+2, p->c+2) == '#'){
-                    make_new_piece = true;
-                }
-            }
-            else if (mvinch(p->r+3, p->c-1) == '#' ||
-                     mvinch(p->r+3, p->c) == '#'){
-                make_new_piece = true;
-            }
-        case L:
-            if (p->is_horizontal){
-                for (idx = 0; idx < 3; idx++){
-                    if (mvinch(p->r+1, p->c+idx) == '#'){
-                        make_new_piece = true;
-                    }
-                }
-            }
-            else{
-                if (mvinch(p->r+3, p->c) == '#' ||
-                    mvinch(p->r+3, p->c+1) == '#'){
-                    make_new_piece = true;
-                }
-            }
-            break;
-        default:
-            break;
+        }
     }
     if (make_new_piece){
+        draw_piece(p);
         free(curr_piece);
         curr_piece = NULL;
         clear_lines();
         return;
     }
-    clear_piece(p);
     p->r++;
     if (p->do_flip){
-        if (!p->is_horizontal && p->c < WIDTH-4){
-            p->is_horizontal = true;
-        }
-        else if(p->is_horizontal){
-            p->is_horizontal = false;
-        }
+        do_flip(p);
         p->do_flip = false;
     }
     draw_piece(p);
 }
 
-void move_horizontally(direction_t direction){
-    piece_t *p = curr_piece;
-    int inc = 0, idx;
-
-    switch (p->type){
-        case I:
-            if (direction == LEFT){
-                inc = -1;
-            }
-            else if (direction == RIGHT) {
-                inc = 1;
-            }
-            if (p->is_horizontal && direction == LEFT){
-                if (mvinch(p->r, p->c-1) == '#'){
-                    inc = 0;
-                }
-            }
-            else if (p->is_horizontal && direction == RIGHT){
-                if (mvinch(p->r, p->c+4) == '#'){
-                    inc = 0;
-                }
-            }
-            else{ //Vertical
-                for (idx = 0; idx < 4; idx++){
-                    if (mvinch(p->r+idx, p->c+inc) == '#'){
-                        inc = 0;
-                    }
-                }
-            }
-            break;
-        case SQUARE:
-            if (direction == LEFT && mvinch(p->r, p->c-1) != '#' ){
-                inc = -1;
-            }
-            else if (direction == RIGHT && mvinch(p->r, p->c+2) !=  '#'){
-                inc = 1;
-            }
-        case J:
-            if (direction == LEFT){
-            }
-            else{
-            }
-        case L:
-            break;
+void do_flip(piece_t *p){
+    int r, c;
+    char new_shape[4][5];
+    
+    for (r = 0; r < 4; r++){
+        for (c = 0; c < 4; c++){
+            new_shape[c][r] = p->shape[r][c];
+        }
+        new_shape[r][4] = '\0';
     }
-    if(inc){
-        clear_piece(p);
-        p->c += inc;
-        draw_piece(p);
+    for (r = 0; r < 4; r++){
+        strncpy(p->shape[r], new_shape[r], 5);
     }
 }
 
-void clear_piece(piece_t *p){
-    int idx;
+void move_horizontally(direction_t direction){
+    piece_t *p = curr_piece;
+    int inc = 0, r, c;
 
-    switch (p->type){
-        case I:
-            if (p->is_horizontal){
-                mvprintw(p->r, p->c, "    ");
+    direction == LEFT ? (inc = -1) : (inc = 1);
+    clear_piece(p);
+    for (r = 0; r < 4; r++){
+        for (c = 0; c < 4; c++){
+            if (p->shape[r][c] == '#' && mvinch(p->r+r, p->c+c+inc) == '#'){
+                inc = 0;
             }
-            else{
-                for (idx = 0; idx < 4; idx++){
-                    mvprintw(p->r+idx, p->c, " ");
-                }
+        }
+    }
+
+    p->c += inc;
+    draw_piece(p);
+}
+
+void clear_piece(piece_t *p){
+    int r, c;
+
+    for (r = 0; r < 4; r++){
+        for (c = 0; c < 4; c++){
+            if (p->shape[r][c] == '#'){
+                mvprintw(p->r+r, p->c+c, " ");
             }
-            break;
-        case SQUARE:
-            for (idx = 0; idx < 2; idx++){
-                mvprintw(p->r+idx, p->c, "  ");
-            }
-            break;
-        case J:
-            if (p->is_horizontal){
-                mvprintw(p->r, p->c, "   ");
-                mvprintw(p->r+1, p->c+2, " ");
-            }
-            else{
-                for (idx = 0; idx < 2; idx++){
-                    mvprintw(p->r+idx, p->c, " ");
-                }
-                mvprintw(p->r+2, p->c-1, "  ");
-            }
-            break;
-        case L:
-            if (p->is_horizontal){
-                mvprintw(p->r, p->c, "   ");
-                mvprintw(p->r-1, p->c+2, " ");
-            }
-            else{
-                for (idx = 0; idx < 2; idx++){
-                    mvprintw(p->r+idx, p->c, " ");
-                }
-                mvprintw(p->r+2, p->c, "  ");
-            }
-            break;
-        default:
-            break;
+        }
     }
 }
 
 void draw_piece(piece_t *p){
-    int idx;
+    int r, c;
 
-    switch (p->type){
-        case I:
-            if (p->is_horizontal){
-                mvprintw(p->r, p->c, "####");
+    for (r = 0; r < 4; r++){
+        for (c = 0; c < 4; c++){
+            if (p->shape[r][c] == '#'){
+                mvprintw(p->r+r, p->c+c, "#");
             }
-            else{
-                for (idx = 0; idx < 4; idx++){
-                    mvprintw(p->r+idx, p->c, "#");
-                }
-            }
-            break;
-        case SQUARE:
-            for (idx = 0; idx < 2; idx++){
-                mvprintw(p->r+idx, p->c, "##");
-            }
-            break;
-        case J:
-            if (p->is_horizontal){
-                mvprintw(p->r, p->c, "###");
-                mvprintw(p->r+1, p->c+2, "#");
-            }
-            else {
-                for (idx = 0; idx < 2; idx++){
-                    mvprintw(p->r+idx, p->c, "#");
-                }
-                mvprintw(p->r+2, p->c-1, "###");
-            }
-            break;
-        case L:
-            if (p->is_horizontal){
-                mvprintw(p->r, p->c, "###");
-                mvprintw(p->r-1, p->c+2, "#");
-            }
-            else{
-                for (idx = 0; idx < 2; idx++){
-                    mvprintw(p->r+idx, p->c, "#");
-                }
-                mvprintw(p->r+2, p->c, "##");
-            }
-            break;
-        default:
-            break;
-
+        }
     }
 }
 
