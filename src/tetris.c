@@ -93,8 +93,7 @@ piece_t *add_piece(){
         exit(1);
     }
 
-    new_piece->type = (enum piece_type)(rand() % 4);
-    //new_piece->type = I;
+    new_piece->type = (enum piece_type)(rand() % PIECE_TYPES);
     switch (new_piece->type){
         case I:
             strncpy(new_piece->shape[0], " #  ", 5);
@@ -131,6 +130,18 @@ piece_t *add_piece(){
             if (mvinch(3, WIDTH/2) == '#' || mvinch(3, WIDTH/2+1) == '#'){
                 game_over = true;
             }
+            break;
+        case S:
+            strncpy(new_piece->shape[0], "    ", 5);
+            strncpy(new_piece->shape[1], "  ##", 5);
+            strncpy(new_piece->shape[2], " ## ", 5);
+            strncpy(new_piece->shape[3], "    ", 5);
+            break;
+        case Z:
+            strncpy(new_piece->shape[0], "    ", 5);
+            strncpy(new_piece->shape[1], "##  ", 5);
+            strncpy(new_piece->shape[2], " ## ", 5);
+            strncpy(new_piece->shape[3], "    ", 5);
             break;
     }
     if (game_over){

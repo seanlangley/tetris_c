@@ -1,8 +1,9 @@
 #ifndef TETRIS_H
 #define TETRIS_H
 #define WIDTH 15
-#define HEIGHT 15
+#define HEIGHT 30
 #define MAX_PIECES 128
+#define PIECE_TYPES 6
 
 typedef enum direction{
     LEFT,
@@ -14,6 +15,8 @@ enum piece_type{
     L,
     J,
     SQUARE,
+    S,
+    Z,
 };
 
 typedef struct piece{
