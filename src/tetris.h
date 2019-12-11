@@ -1,7 +1,7 @@
 #ifndef TETRIS_H
 #define TETRIS_H
 #define WIDTH 15
-#define HEIGHT 15
+#define HEIGHT 30
 #define MAX_PIECES 128
 
 typedef enum direction{
@@ -22,6 +22,7 @@ typedef struct piece{
     bool do_flip;
     bool is_horizontal;
     enum piece_type type;
+    char shape[4][5];
 } piece_t;
 
 void draw_well(void);
@@ -33,5 +34,6 @@ void clear_piece(piece_t*);
 void draw_piece(piece_t*);
 void clear_lines(void);
 void draw_next_pieces(void);
+void do_flip(piece_t*);
 
 #endif //TETRIS_H
