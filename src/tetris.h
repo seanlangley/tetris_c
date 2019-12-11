@@ -1,7 +1,7 @@
 #ifndef TETRIS_H
 #define TETRIS_H
 #define WIDTH 15
-#define HEIGHT 30
+#define HEIGHT 15
 #define MAX_PIECES 128
 
 typedef enum direction{

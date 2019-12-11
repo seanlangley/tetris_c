@@ -201,9 +201,7 @@ void move_horizontally(direction_t direction){
         }
     }
 
-    if(inc){
-        p->c += inc;
-    }
+    p->c += inc;
     draw_piece(p);
 }
 
