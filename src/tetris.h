@@ -1,7 +1,7 @@
 #ifndef TETRIS_H
 #define TETRIS_H
 #define WIDTH 15
-#define HEIGHT 30
+#define HEIGHT 15
 #define MAX_PIECES 128
 #define PIECE_TYPES 6
 
@@ -38,5 +38,6 @@ void draw_piece(piece_t*);
 void clear_lines(void);
 void draw_next_pieces(void);
 void do_flip(piece_t*);
+void new_curr_piece(void);
 
 #endif //TETRIS_H

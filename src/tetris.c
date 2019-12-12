@@ -10,6 +10,7 @@ piece_t *next_pieces[3];
 char error[32], buffer[32];
 unsigned int score = 0, level = 1;
 bool game_over = false;
+int max_y, max_x;
 
 int main(){
     int ch, idx;
@@ -18,7 +19,7 @@ int main(){
     init_curses();
     draw_well();
     curr_piece = add_piece();
-    mvprintw(4, 18, "Next Pieces");
+    mvprintw(6, 18, "Next Pieces");
     for (idx = 0; idx < 3; idx++){
         next_pieces[idx] = add_piece();
      }
@@ -42,7 +43,7 @@ int main(){
             update_curr_piece();
         }
         else{
-            curr_piece = add_piece();
+            new_curr_piece();
         }
         
         if (game_over){
@@ -50,8 +51,40 @@ int main(){
         }
         usleep(1000*100);
     }
+    mvprintw(max_y/2, max_x/2, "GAME OVER!");
+    while(1){
+        if (getch() == 'q'){
+            break;
+        }
+        usleep(1000*100);
+    }
     endwin();
     return 0;
+}
+
+void new_curr_piece(){
+    int r, c, idx;
+    piece_t *p;
+
+    curr_piece = next_pieces[0];
+    curr_piece->r = 0;
+    curr_piece->c = WIDTH/2;
+    p = curr_piece;
+    for (r = 0; r < 4; r++){
+        for (c = 0; c < 4; c++){
+            if (mvinch(p->r+r, p->c+c) == '#'){
+                game_over = true;
+                return;
+            }
+        }
+    }
+    for (idx = 0; idx < 3; idx++){
+        clear_piece(next_pieces[idx]);
+    }
+    next_pieces[0] = next_pieces[1];
+    next_pieces[1] = next_pieces[2];
+    next_pieces[2] = add_piece();
+    draw_next_pieces();
 }
 
 void draw_next_pieces(){
@@ -68,8 +101,9 @@ void init_curses(){
     initscr();
     noecho();
     cbreak();
+    getmaxyx(stdscr, max_y, max_x);
     curs_set(0);
-    timeout(50);
+    timeout(150);
 }
 
 void draw_well(){
@@ -100,36 +134,24 @@ piece_t *add_piece(){
             strncpy(new_piece->shape[1], " #  ", 5);
             strncpy(new_piece->shape[2], " #  ", 5);
             strncpy(new_piece->shape[3], " #  ", 5);
-            if (mvinch(4, WIDTH/2) == '#'){
-                game_over = true;
-            }
             break;
         case SQUARE:
             strncpy(new_piece->shape[0], "    ", 5);
             strncpy(new_piece->shape[1], " ## ", 5);
             strncpy(new_piece->shape[2], " ## ", 5);
             strncpy(new_piece->shape[3], "    ", 5);
-            if (mvinch(3, WIDTH/2) == '#' || mvinch(3, WIDTH/2+1) == '#'){
-                game_over = true;
-            }
             break;
         case J:
             strncpy(new_piece->shape[0], "  # ", 5);
             strncpy(new_piece->shape[1], "  # ", 5);
             strncpy(new_piece->shape[2], " ## ", 5);
             strncpy(new_piece->shape[3], "    ", 5);
-            if (mvinch(3, WIDTH/2-1) == '#' || mvinch(3, WIDTH/2) == '#'){
-                game_over = true;
-            }
             break;
         case L:
             strncpy(new_piece->shape[0], " #  ", 5);
             strncpy(new_piece->shape[1], " #  ", 5);
             strncpy(new_piece->shape[2], " ## ", 5);
             strncpy(new_piece->shape[3], "    ", 5);
-            if (mvinch(3, WIDTH/2) == '#' || mvinch(3, WIDTH/2+1) == '#'){
-                game_over = true;
-            }
             break;
         case S:
             strncpy(new_piece->shape[0], "    ", 5);
@@ -184,14 +206,21 @@ void update_curr_piece(){
 }
 
 void do_flip(piece_t *p){
-    int r, c;
+    int r, c0, c1;
     char new_shape[4][5];
     
     for (r = 0; r < 4; r++){
-        for (c = 0; c < 4; c++){
-            new_shape[c][r] = p->shape[r][c];
+        for (c0 = 0, c1 = 3; c0 < 4; c0++, c1--){
+            new_shape[c1][r] = p->shape[r][c0];
         }
         new_shape[r][4] = '\0';
+    }
+    for (r = 0; r < 4; r++) {
+        for (c0 = 0; c0 < 4; c0++) {
+            if (mvinch(p->r+r, p->c+c0) == '#'){
+                return;
+            }
+        }
     }
     for (r = 0; r < 4; r++){
         strncpy(p->shape[r], new_shape[r], 5);
@@ -211,7 +240,6 @@ void move_horizontally(direction_t direction){
             }
         }
     }
-
     p->c += inc;
     draw_piece(p);
 }
