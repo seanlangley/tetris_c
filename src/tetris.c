@@ -7,7 +7,7 @@
 
 piece_t *curr_piece = NULL;
 piece_t *next_pieces[3];
-char error[32], buffer[32];
+char error[64], buffer[32];
 unsigned int score = 0, level = 1;
 bool game_over = false;
 int max_y, max_x;
